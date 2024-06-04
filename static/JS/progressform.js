@@ -17,24 +17,55 @@ var data;
 
                 if (data && Array.isArray(data) && data.length > 0) {
                     var firstFormData = data[0]; // Get the first dictionary from the list
+                
                     // Update labels with values from the first dictionary
                     // Assuming firstFormData contains the date in the format 'YYYY-MM-DD HH:MM:SS'
                     var initiationDateTime = firstFormData['InitiationDate'];
-        
+                
                     // Extract just the date part
                     var initiationDate = initiationDateTime ? initiationDateTime.split(' ')[0] : 'Loading Initiation Date ...';
-        
+                
+                    // Set default values for stages
+                    var stage1 = 'Completed';
+                    var stage2 = 'Pending';
+                    var stage3 = 'Pending';
+                    var stage4 = 'Pending';
+                
+                    // Check conditions and update stages accordingly
+                    if (firstFormData['ApprovalToSend'] === 'YES') {
+                        stage2 = 'Completed';
+                    } else if (firstFormData['ApprovalToSend'] === 'NO') {
+                        stage2 = 'Disapproved';
+                        // If disapproved, set stage3 and stage4 to disapproved too
+                        stage3 = 'Disapproved';
+                        stage4 = 'Disapproved';
+                    }
+                
+                    if (firstFormData['CompletionDate'] !== 'Nan') {
+                        stage3 = 'Completed';
+                    }
+                
+                    if (firstFormData['ApprovalToReceive'] === 'YES') {
+                        stage4 = 'Completed';
+                    }
+                
+                    // Update HTML elements with the computed stages
                     document.getElementById("formNo").textContent = firstFormData['FormID'] || 'Loading Form ID ...';
                     document.getElementById("ewaybillno").textContent = firstFormData['EwayBillNo'] || 'Loading Eway Bill No ...';
-        
                     document.getElementById("Sender").textContent = firstFormData['Sender'] || 'Loading From Person ...';
                     document.getElementById("Source").textContent = firstFormData['Source'] || 'Loading From Project ...';
                     document.getElementById("Receiver").textContent = firstFormData['Receiver'] || 'Loading To Person ...';
                     document.getElementById("Destination").textContent = firstFormData['Destination'] || 'Loading To Project ...';
-                    document.getElementById("InitiationDate").textContent = initiationDate;        
+                    document.getElementById("InitiationDate").textContent = initiationDate;
                     document.getElementById("CompletionDate").textContent = firstFormData['CompletionDate'] || 'Loading To Project ...';
-
-        } else {
+                
+                    // Update stage elements with computed stage values
+                    document.getElementById("Stage1").textContent = stage1;
+                    document.getElementById("Stage2").textContent = stage2;
+                    document.getElementById("Stage3").textContent = stage3;
+                    document.getElementById("Stage4").textContent = stage4;
+                }
+                 else {
             console.error("No form data or invalid data format received");
         }
         
@@ -47,10 +78,11 @@ var data;
 
 
             data.forEach(function(row, index) {
-    var newRow = table.insertRow();
+                
+                    var newRow = table.insertRow();
 
-    var serialNoCell = newRow.insertCell(0);
-    serialNoCell.textContent = index + 1; // Generate dynamic serial number starting from 1
+                    var serialNoCell = newRow.insertCell(0);
+                    serialNoCell.textContent = index + 1; // Generate dynamic serial number starting from 1
 
                     var productCategoryCell = newRow.insertCell(1);
                     productCategoryCell.textContent = row['Category'];

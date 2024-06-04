@@ -8,7 +8,7 @@ window.onload = function() {
       .then(response => response.json())
       .then(result => {
           const combinedData = result.combined_data;
-          if (Array.isArray(combinedData) && combinedData.length === 3) {
+          if (Array.isArray(combinedData) && combinedData.length === 4) {
               const firstArray = combinedData[2];
               if (Array.isArray(firstArray) && firstArray.length > 0) {
                   const firstDictionary = firstArray[0];
@@ -19,11 +19,12 @@ window.onload = function() {
                       document.getElementById('Source').textContent = projectValue;
                   }
               }
+              console.log(combinedData)
               inventoryData = combinedData[0];
               initiatedData = combinedData[1];
               displaySelectTable();
               toggleSelectedItemsHeader();
-
+              adjustButtonsVisibility(combinedData[3])
               const nameProjectDict = combinedData[1];
 
               const receiverDropdown = document.getElementById('Receiver');
@@ -87,6 +88,8 @@ function showItemsSelectedTab() {
   clearTabs();
   document.getElementById('itemsSelected').style.display = 'block';
   document.getElementById('selectableTab').style.display = 'none';
+  document.getElementById('selected-items').style.backgroundColor = '#404040'
+  document.getElementById('choose-items').style.backgroundColor = '#262626'
   displayItemsSelectedTable();
   toggleSelectedItemsHeader();
 }
@@ -95,6 +98,8 @@ function showSelectTab() {
     clearTabs();
     document.getElementById('selectableTab').style.display = 'block';
     document.getElementById('itemsSelected').style.display = 'none';
+    document.getElementById('selected-items').style.backgroundColor = '#262626'
+    document.getElementById('choose-items').style.backgroundColor = '#404040'
     displaySelectTable();
 }
 

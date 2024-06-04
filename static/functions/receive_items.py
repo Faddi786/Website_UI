@@ -1,29 +1,53 @@
 import pandas as pd
 from static.functions import common_functions
 from datetime import datetime
+import json
 
 
 
-def recieve_items_table_data_function(name):
+def replace_nan_with_word(data, word="nan"):
+    if isinstance(data, dict):
+        return {k: replace_nan_with_word(v, word) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [replace_nan_with_word(item, word) for item in data]
+    elif pd.isna(data):
+        return word
+    else:
+        return data
+
+
+def receive_items_table_data_function(name, session_data):
     # Load the data from the Excel file into a pandas DataFrame
     df = pd.read_excel('Excel/handover_data.xlsx')
 
-    # Remove rows with duplicate 'FormID'
-    df = df.drop_duplicates(subset='FormID')
-
     # Filter the DataFrame based on the parameters
     filtered_data = df[(df['Receiver'] == name) & 
-                    (df['ApprovalToSend'] == "YES") & 
-                    (df['ApprovalToReceive'] != "YES") & 
-                    (df['CompletionDate'].isnull())]
+                       (df['ApprovalToSend'] == "YES") & 
+                       (df['ApprovalToReceive'] != "YES") & 
+                       (df['CompletionDate'].isnull())]
 
     # Sort the filtered data by 'InitiationDate' column in descending order
     filtered_data = filtered_data.sort_values(by='InitiationDate', ascending=False)
 
-    # Convert the filtered data to JSON format
-    json_data = filtered_data.to_json(orient='records')
+    # Convert the filtered DataFrame to a dictionary
+    filtered_data_dict = filtered_data.to_dict(orient='records')
 
-    return json_data
+    # Replace all NaN values in the dictionary with the word 'nan'
+    filtered_data_dict = replace_nan_with_word(filtered_data_dict)
+
+    # Append the session_data dictionary
+    combined_data = {
+        "filtered_data": filtered_data_dict,
+        "session_data": session_data
+    }
+
+    # Convert the combined data to a JSON object
+    json_result = json.dumps(combined_data)
+
+    # Return the JSON object
+    return json_result
+
+
 
 
 
@@ -69,4 +93,6 @@ def receive_approval_request_function(form_data):
     excel_data.to_excel('Excel/handover_data.xlsx', index=False)
     
     return 'Data processed successfully'
+
+
 

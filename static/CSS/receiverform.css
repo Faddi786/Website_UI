@@ -90,8 +90,9 @@ body {
 }
 
 .my-container-footer {
-    width: 79%;
-    margin-left: 10.5%;
+    width: 65%;
+    margin-left: 17.5%;
+    margin-top: 2%;
 }
 
 .ask-approval-button {

@@ -5,6 +5,10 @@ from openpyxl import load_workbook
 from static.functions import common_functions
 from flask import jsonify
 from datetime import datetime
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
 
 
 
@@ -29,7 +33,7 @@ def is_item_already_initiated(product_ids):
     return common_product_ids
 
 
-def cart_items_function(name,project):
+def cart_items_function(name,project,session_data):
 
     # Load the Excel file
     wb = load_workbook('Excel/inventory.xlsx')
@@ -78,7 +82,10 @@ def cart_items_function(name,project):
 
     # Create a new list containing both data and result
     combined_data = [data, dropdownvalues, nameproject]
+
+    combined_data.append(session_data)
     
+    print('this is the combined data after adding session data')
     jsonify(combined_data)
 
     return combined_data
@@ -111,16 +118,21 @@ def receive_destination_dropdown_values():
         return {'error': str(e)}
 
 
-def process_form_data(form_data):
+
+
+
+def process_form_data(form_data,ID):
     print('we are here in the process form data functionnnnnnnnnnnnnnnnnnnn', form_data)
     try:
         # Extract form details
         form_details = form_data[0]
         source = form_details.get('Source', '')
         destination = form_details.get('Destination', '')
-        sender = form_details.get('Sender', '')
+        sender = ID
         receiver = form_details.get('Receiver', '')
 
+
+        
         # Extract item details
         item_details = form_data[1:]
 
@@ -147,6 +159,8 @@ def process_form_data(form_data):
         # Write the updated data back to the 'transaction' sheet
         updated_data.to_excel('Excel/handover_data.xlsx', index=False)
         print('yeahhh we have done it')
+
+
         return {'message': 'Data successfully updated in the transaction sheet of the Excel file.'}
     except Exception as e:
         print('An error occurred during processing form data:', e)

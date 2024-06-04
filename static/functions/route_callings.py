@@ -10,6 +10,15 @@ def index():
 def welcome():
     return render_template('welcome.html')
 
+@page_routes.route('/register')
+def register():
+    return render_template('registrationpage.html')
+
+
+@page_routes.route('/homepage')
+def homepage():
+    return render_template('homepage.html')
+
 
 @page_routes.route('/return_to_login')
 def return_to_login():
@@ -87,5 +96,24 @@ def project_invent():
 @page_routes.route('/my_invent')
 def my_invent():
     return render_template('myinventory.html')
+
+
+
+
+@page_routes.route('/additem')
+def additem():
+    return render_template('additem.html')
+
+@page_routes.route('/deleteitem')
+def deleteitem():
+    return render_template('deleteitem.html')
+
+
+
+
+
+
+
+
 
 

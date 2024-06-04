@@ -11,6 +11,7 @@ body {
 
 .container {
     background-color: #262626;
+    color: white;
     padding: 30px;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -74,7 +75,7 @@ body {
 }
 
 .login-form button {
-    background-color: #404040;
+    background-color: #262626;
     color: white;
     padding: 10px 15px;
     border: none;
@@ -85,7 +86,7 @@ body {
 }
 
 .login-form button:hover {
-    background-color: #404040a2;
+    background-color: #404040;
 }
 
 .login-form a {

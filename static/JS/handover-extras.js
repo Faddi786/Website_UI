@@ -97,7 +97,7 @@ if (selectedTable) {
           Make: cells[3].innerText,
           Model: cells[4].innerText,
 
-            SerialNo: cells[5].innerText,
+            ProductID: cells[5].innerText,
             SenderCondition: cells[6].querySelector('select').value,
             SenderRemarks: cells[7].querySelector('input[type="text"]').value
         };

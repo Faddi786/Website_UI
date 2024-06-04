@@ -51,7 +51,7 @@ from email import encoders
 from flask import request
 
 
-from static.functions import sendform
+from static.functions import handover
 from static.functions import approvaltable
 from static.functions.route_callings import page_routes
 from static.functions import common_functions
@@ -60,7 +60,7 @@ from static.functions import approvereceive
 from static.functions import transfer_progress
 from static.functions import receive_items
 from static.functions import transaction_history
-from static.functions import dashboard
+from static.functions import inventory
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -100,25 +100,29 @@ def login():
     matched_rows = user_data[(user_data['ID'] == username) & (user_data['Password'] == password)]
 
     if not matched_rows.empty:
-        # Extract type of account
-        account_type = matched_rows.iloc[0]['Type Of Account']
         
-        # Store the entire row data in session
-        session['login_row_data'] = matched_rows.iloc[0].to_dict()
+        # Replace NaN values with "nan" in the matched row data
+        matched_row_data = matched_rows.iloc[0].fillna("nan").to_dict()
+        
+        # Store the modified row data in session
+        session['login_row_data'] = matched_row_data
         print("this is session dataaa  ", session['login_row_data'])
 
-        # Redirect based on account type
-        if account_type == 'Manager':
-            return redirect(url_for('manager'))
-
-        elif account_type == 'Employee':
-            return redirect(url_for('employee'))
-
-        else:
-            return "Unknown account type"
+        return "login matched"
 
     else:
         return "Account not found"
+
+
+
+
+@app.route('/get_session_data', methods=['GET'])
+def get_session_data():
+    print('this is the session data', session['login_row_data'])
+    if 'login_row_data' not in session:
+        return jsonify({"error": "User data not found in session"}), 404
+
+    return jsonify(session['login_row_data'])
 
 
 @app.route('/cart_items')
@@ -127,7 +131,7 @@ def cart_items():
     # Get the name from session data
     name = session.get('login_row_data', {}).get('Name')
     project = session.get('login_row_data', {}).get('Project')
-    data = sendform.cart_items_function(name, project)
+    data = handover.cart_items_function(name, project,session.get('login_row_data', {}))
     print('this is the data hahahah',data)
     return jsonify(combined_data=data)
 
@@ -139,13 +143,34 @@ def send_approval_request():
     try:
         # Get form data from the request
         form_data = request.json
+        project = session.get('login_row_data', {}).get('ID')
+
         print('this is the send approval request form data',form_data)
-        sendform.process_form_data(form_data)
+        handover.process_form_data(form_data,ID)
         
         return jsonify({'message': 'Excel file updated successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+
+@app.route('/receive_items_table_data', methods=['GET'])
+def recieve_items_table_data():
+
+    name = session.get('login_row_data', {}).get('Name')
+
+    data = receive_items.receive_items_table_data_function(name,session.get('login_row_data', {}))
+
+    print('this is the data before returning for receive items table data')
+    return data
+
+
+@app.route('/receive_approval_request', methods=['POST'])
+def receive_approval_request():
+    form_data = request.json  # Assuming the form data is sent as JSON
+    print("This is the receive_approval_request form data", form_data)
+    receive_items.receive_approval_request_function(form_data)
+    return "Mail for approval of receiving item is sent, you may contact your manager to approve it."
 
 
 @app.route('/approval_table', methods=['GET'])
@@ -154,7 +179,7 @@ def approval_table():
     # Get the project from session data
     project = session.get('login_row_data', {}).get('Project')
         
-    json_data = approvaltable.approval_table_function(project)
+    json_data = approvaltable.approval_table_function(project,session.get('login_row_data', {}))
     return json_data
 
 # Initialize an empty DataFrame
@@ -211,11 +236,14 @@ def approve_receive_request():
 @app.route('/transfer_progress_table_data')
 def transfer_progress_table_data():
     try:
-        name = session.get('login_row_data', {}).get('Name')
+        ID = session.get('login_row_data', {}).get('ID')
 
         project = session.get('login_row_data', {}).get('Project')
 
-        data = transfer_progress.transfer_progress_table_data_function(name, project)
+        toa = session.get('login_row_data', {}).get('TypeOfAccount')
+        print('this is the session data',session.get('login_row_data', {}))
+        data = transfer_progress.transfer_progress_table_data_function(ID, project, toa, session.get('login_row_data', {}))
+        
         print(data)
 
         return data
@@ -223,19 +251,6 @@ def transfer_progress_table_data():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/recieve_items_table_data', methods=['GET'])
-def recieve_items_table_data():
-    name = session.get('login_row_data', {}).get('Name')
-    data = receive_items.recieve_items_table_data_function(name)
-    return data
-
-
-@app.route('/receive_approval_request', methods=['POST'])
-def receive_approval_request():
-    form_data = request.json  # Assuming the form data is sent as JSON
-    print("This is the receive_approval_request form data", form_data)
-    receive_items.receive_approval_request_function(form_data)
-    return "Mail for approval of receiving item is sent, you may contact your manager to approve it."
 
 
 
@@ -246,27 +261,124 @@ def transaction_history_table():
     name = session.get('login_row_data', {}).get('Name')
     project = session.get('login_row_data', {}).get('Project')
 
-    data = transaction_history.transaction_history_table_function(name,project)
+    data = transaction_history.transaction_history_table_function(name,project,session.get('login_row_data', {}))
 
     return data
 
 @app.route('/my_invent_dashboard')
 def my_invent_dashboard():
     name = session.get('login_row_data', {}).get('Name', 'Unknown')
-    data = dashboard.my_invent_dashboard_function(name)
+    print(session.get('login_row_data', {}))
+    data = inventory.my_invent_dashboard_function(name,session.get('login_row_data', {}))
+    print('this is the myinvent data',data)
     return data
 
-@app.route('/invent_dashboard')
-def invent_dashboard():
-    data = dashboard.invent_dashboard_function()
-    return data
 
 
 @app.route('/my_project_dashboard')
 def my_project_dashboard():
     project = session.get('login_row_data', {}).get('Project')
-    data = dashboard.my_project_dashboard_function(project)
+    print('session data in my project inventory',session.get('login_row_data', {}))
+
+    data = inventory.my_project_dashboard_function(project,session.get('login_row_data', {}))
+    print('my project inventory data',data)
     return data
+
+
+@app.route('/invent_dashboard')
+def invent_dashboard():
+    data = inventory.invent_dashboard_function(session.get('login_row_data', {}))
+    return data
+
+
+
+
+
+@app.route('/additem', methods=['POST'])
+def add_item():
+
+    # Load the Excel file
+    excel_file = "Excel/inventory.xlsx"
+    df = pd.read_excel(excel_file)
+
+    # Get data from the POST request
+    data = request.json
+
+    # Extract values from the JSON data
+    category = data['category']
+    name = data['name']
+    make = data['make']
+    model = data['model']
+    product_id = data['productId']
+    owner = data['owner']
+    project = data['project']
+
+    # Check if category, owner, and project exist in their respective columns
+    cat_flag = category in df['Category'].values
+    owner_flag = owner in df['Owner'].values
+    project_flag = project in df['Project'].values
+
+    if cat_flag and owner_flag and project_flag:
+        # Create a new DataFrame with the new entry
+        new_entry = pd.DataFrame({
+            'Category': [category],
+            'Name': [name],
+            'Make': [make],
+            'Model': [model],
+            'ProductID': [product_id],
+            'Owner': [owner],
+            'Project': [project],
+            'Condition': ['Good']  # Assuming condition will be updated later
+        })
+
+        # Concatenate the new entry to the existing DataFrame
+        df = pd.concat([df, new_entry], ignore_index=True)
+
+        # Save the updated DataFrame back to the Excel file
+        df.to_excel(excel_file, index=False)
+
+        return jsonify({'message': 'Item added successfully'})
+    else:
+        return jsonify({'message': 'Category, owner, or project does not exist in the database'})
+
+
+
+@app.route('/deleteitem', methods=['POST'])
+def delete_item():
+    # Load the Excel file
+    excel_file = "Excel/inventory.xlsx"
+    df = pd.read_excel(excel_file)
+
+    # Get data from the POST request
+    data = request.json
+    print(data)
+    # Extract values from the JSON data
+    category = data['category']
+    name = data['name']
+    make = data['make']
+    model = data['model']
+    product_id = data['productId']
+    owner = data['owner']
+    project = data['project']
+
+    print(category,name,make,model,product_id,owner,project)
+    # Find and remove the matching row
+    condition = (
+        (df['Category'] == category) &
+        (df['Name'] == name) &
+        (df['Make'] == make) &
+        (df['Model'] == model) &
+        (df['ProductID'] == product_id) &
+        (df['Owner'] == owner) &
+        (df['Project'] == project)
+    )
+
+    if not df[condition].empty:
+        df = df[~condition]
+        df.to_excel(excel_file, index=False)
+        return jsonify({'message': 'Item deleted successfully'})
+    else:
+        return jsonify({'message': 'No matching item found in the database'})
 
 
 

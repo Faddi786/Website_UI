@@ -7,11 +7,18 @@ function fetchData() {
     xhr.onreadystatechange = function() {
         if (xhr.readyState === XMLHttpRequest.DONE) {
             if (xhr.status === 200) {
-                tableData = JSON.parse(xhr.responseText);
-                console.log(tableData);
-                displayData(tableData);
-                populateFilters(tableData);
+                var responseData = JSON.parse(xhr.responseText);
+                var filteredData = responseData.filtered_data;
+                var sessionData = responseData.session_data;
+
+                console.log(filteredData);
+                console.log(sessionData);
+
+                displayData(filteredData);
+                populateFilters(filteredData);
                 attachFilterListeners();
+                adjustButtonsVisibility(sessionData);
+
             } else {
                 console.error('Error fetching data:', xhr.statusText);
             }
@@ -19,6 +26,7 @@ function fetchData() {
     };
     xhr.send();
 }
+
 
 // Function to get unique values for each column
 function getUniqueValues(data, column) {
@@ -28,12 +36,11 @@ function getUniqueValues(data, column) {
 // Function to populate filters with unique values
 function populateFilters(data) {
     const filters = {
-        'filter-serialNo': 'SerialNo',
         'filter-category': 'Category',
+        'filter-productId': 'ProductID',
         'filter-name': 'Name',
         'filter-make': 'Make',
         'filter-model': 'Model',
-        'filter-productId': 'ProductID',
         'filter-condition': 'Condition',
         'filter-project': 'Project',
         'filter-owner': 'Owner'
@@ -41,16 +48,32 @@ function populateFilters(data) {
 
     for (const [filterId, column] of Object.entries(filters)) {
         const select = document.getElementById(filterId);
-        select.innerHTML = '<option value="All">All</option>'; // Reset options
-        const uniqueValues = getUniqueValues(data, column);
+        if (select) {
+            select.innerHTML = '<option value="All">All</option>'; // Reset options
+            const uniqueValues = getUniqueValues(data, column);
 
-        uniqueValues.forEach(value => {
-            const option = document.createElement('option');
-            option.value = value;
-            option.text = value;
-            select.appendChild(option);
-        });
+            uniqueValues.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.text = value;
+                select.appendChild(option);
+            });
+        }
     }
+}
+
+
+// Function to initialize DataTables
+function initializeDataTable() {
+    $('#data-table').DataTable({
+        lengthChange: false,  // Remove "Show entries" dropdown
+        info: false,          // Remove "Showing X to Y of Z entries" label
+        paging: false,        // Remove pagination
+        searching: false,     // Remove the default search box
+        ordering: false,      // Disable column ordering
+        autoWidth: false,     // Disable automatic column width calculation
+        responsive: true      // Enable responsive design
+    });
 }
 
 // Function to display data in the table
@@ -60,7 +83,7 @@ function displayData(data) {
     tableBody.innerHTML = ''; // Clear existing data
 
     // Define the desired column sequence
-    const desiredColumns = ['SerialNo', 'Category', 'Name', 'Make', 'Model', 'ProductID', 'Project', 'Owner', 'Condition'];
+    const desiredColumns = ['SerialNo', 'Category', 'ProductID', 'Name', 'Make', 'Model', 'Condition', 'Project', 'Owner'];
 
     // Populate table with data and generate SerialNo dynamically
     data.forEach((row, index) => {
@@ -81,24 +104,17 @@ function displayData(data) {
     });
 
     // Initialize DataTables with custom options
-    $('#data-table').DataTable({
-        lengthChange: false,  // Remove "Show entries" dropdown
-        info: false,          // Remove "Showing X to Y of Z entries" label
-        paging: false,        // Remove pagination
-        searching: false,     // Remove the default search box
-        ordering: false       // Disable column ordering
-    });
+    initializeDataTable();
 }
 
 // Function to filter the table based on dropdown values
 function filterTable() {
     const filters = {
-        'filter-serialNo': 'SerialNo',
         'filter-category': 'Category',
+        'filter-productId': 'ProductID',
         'filter-name': 'Name',
         'filter-make': 'Make',
         'filter-model': 'Model',
-        'filter-productId': 'ProductID',
         'filter-condition': 'Condition',
         'filter-project': 'Project',
         'filter-owner': 'Owner'
@@ -126,48 +142,28 @@ function filterTable() {
     updateDropdowns(filters);
 }
 
-// Helper function to get column index based on column name
-function columnIndex(columnName) {
-    const columns = ['SerialNo', 'Category', 'Name', 'Make', 'Model', 'ProductID', 'Project', 'Owner', 'Condition'];
-    return columns.indexOf(columnName);
-}
-
-// Function to attach filter listeners to dropdowns
-function attachFilterListeners() {
-    const filterIds = [
-        'filter-serialNo', 'filter-category', 'filter-name',
-        'filter-make', 'filter-model', 'filter-productId', 'filter-condition', 'filter-project', 'filter-owner'
-    ];
-
-    filterIds.forEach(filterId => {
-        document.getElementById(filterId).addEventListener('change', () => {
-            filterTable();
-            // Update dropdowns with the current selection
-            updateDropdowns();
-        });
-    });
-}
-
 // Function to update dropdowns based on visible rows
-function updateDropdowns() {
+function updateDropdowns(activeFilters) {
     const filters = {
-        'filter-serialNo': 'SerialNo',
         'filter-category': 'Category',
+        'filter-productId': 'ProductID',
         'filter-name': 'Name',
         'filter-make': 'Make',
         'filter-model': 'Model',
-        'filter-productId': 'ProductID',
         'filter-condition': 'Condition',
         'filter-project': 'Project',
         'filter-owner': 'Owner'
     };
 
-    const visibleRows = Array.from(document.querySelectorAll('#data-table tbody tr'))
-        .filter(row => row.style.display !== 'none');
-
     for (const [filterId, column] of Object.entries(filters)) {
         const select = document.getElementById(filterId);
-        const uniqueValues = new Set([select.value]); // Ensure the selected value stays in the dropdown
+        const uniqueValues = new Set(['All']);
+
+        // If the user has selected a value, store it to set it back later
+        const currentValue = select.value;
+
+        const visibleRows = Array.from(document.querySelectorAll('#data-table tbody tr'))
+            .filter(row => row.style.display !== 'none');
 
         visibleRows.forEach(row => {
             const cellValue = row.cells[columnIndex(column)].textContent;
@@ -182,10 +178,88 @@ function updateDropdowns() {
             select.appendChild(option);
         });
 
-        // Set the dropdown to the previously selected value
-        select.value = select.value;
+        // Ensure the current selection is retained
+        if (activeFilters && activeFilters[filterId] === column) {
+            // If the active filter is selected, set it back
+            select.value = currentValue;
+        }
     }
 }
+
+
+
+// Helper function to get column index based on column name
+function columnIndex(columnName) {
+    const columns = ['SerialNo', 'Category', 'ProductID', 'Name', 'Make', 'Model', 'Condition', 'Project', 'Owner'];
+    return columns.indexOf(columnName);
+}
+
+// Function to attach filter listeners to dropdowns
+function attachFilterListeners() {
+    const filterIds = [
+        'filter-category', 'filter-productId', 'filter-name',
+        'filter-make', 'filter-model', 'filter-condition', 'filter-project', 'filter-owner'
+    ];
+
+    filterIds.forEach(filterId => {
+        const select = document.getElementById(filterId);
+        select.addEventListener('change', () => {
+            // Clear selection if "All" is chosen
+            if (select.value === 'All') {
+                select.selectedIndex = 0; // Reset to the first option
+            }
+            filterTable();
+        });
+    });
+}
+
+
+// Function to update dropdowns based on visible rows
+function updateDropdowns(activeFilters) {
+    const filters = {
+        'filter-category': 'Category',
+        'filter-productId': 'ProductID',
+        'filter-name': 'Name',
+        'filter-make': 'Make',
+        'filter-model': 'Model',
+        'filter-condition': 'Condition',
+        'filter-project': 'Project',
+        'filter-owner': 'Owner'
+    };
+
+    for (const [filterId, column] of Object.entries(filters)) {
+        const select = document.getElementById(filterId);
+        const uniqueValues = new Set(['All']);
+
+        // If the user has selected a value, store it to set it back later
+        const currentValue = select.value;
+
+        const visibleRows = Array.from(document.querySelectorAll('#data-table tbody tr'))
+            .filter(row => row.style.display !== 'none');
+
+        visibleRows.forEach(row => {
+            const cellValue = row.cells[columnIndex(column)].textContent;
+            uniqueValues.add(cellValue);
+        });
+
+        // Populate dropdown with unique values
+        select.innerHTML = '';
+        uniqueValues.forEach(value => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.text = value;
+            select.appendChild(option);
+        });
+
+        // Ensure the current selection is retained
+        if (activeFilters && activeFilters[filterId] === column) {
+            // If the active filter is selected, set it back
+            select.value = currentValue;
+        }
+    }
+}
+
+
 
 // Call the fetchData function when the page loads
 window.onload = fetchData;

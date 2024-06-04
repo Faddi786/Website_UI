@@ -1,5 +1,6 @@
 // In your external JavaScript file (your_script.js)
 document.addEventListener("DOMContentLoaded", function() {
+
     document.getElementById("sendItemsBtn").addEventListener("click", function() {
         window.location.href = sendItemsUrl;
     });
@@ -27,6 +28,14 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById("logoutBtn").addEventListener("click", function() {
         window.location.href = logoutBtnUrl;
     });
-
+    document.getElementById("homepageBtn").addEventListener("click", function() {
+        window.location.href = homepageBtnUrl;
+    });
+    document.getElementById("additemBtn").addEventListener("click", function() {
+        window.location.href = additemBtnUrl;
+    });
+    document.getElementById("deleteitemBtn").addEventListener("click", function() {
+        window.location.href = deleteitemBtnUrl;
+    });
 
 });

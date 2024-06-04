@@ -229,3 +229,109 @@ def get_list():
 
 '''
 
+'''
+
+
+def extract_emails(sendername, receivername, m1project, m2project):
+    # Read user_info from an Excel file into a DataFrame
+    df = pd.read_excel('Excel/user_info.xlsx')
+    
+    # Initialize email variables
+    e1mail = None
+    e2mail = None
+    m1mail = None
+    m2mail = None
+    
+    # Extract email for sender
+    sender_row = df[df['Name'] == sendername]
+    if not sender_row.empty:
+        e1mail = sender_row['MailID'].values[0]
+    
+    # Extract email for receiver
+    receiver_row = df[df['Name'] == receivername]
+    if not receiver_row.empty:
+        e2mail = receiver_row['MailID'].values[0]
+    
+    # Extract email for m1project
+    m1project_row = df[df['Project'] == m1project]
+    if not m1project_row.empty:
+        m1mail = m1project_row['MailID'].values[0]
+    
+    # Extract email for m2project
+    m2project_row = df[df['Project'] == m2project]
+    if not m2project_row.empty:
+        m2mail = m2project_row['MailID'].values[0]
+    
+    print('these are the mail ids for e1 e2 m1 m2', e1mail, e2mail, m1mail, m2mail)
+    return e1mail, e2mail, m1mail, m2mail
+
+
+
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+def send_email(to_address, subject, body, from_address='shaikhfahad687@gmail.com', smtp_server='smtp.gmail.com', smtp_port=465, login='shaikhfahad687@gmail.com', password='abtqssqpynefigyw'):
+    msg = MIMEMultipart()
+    msg['From'] = from_address
+    msg['To'] = to_address
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(login, password)
+        server.sendmail(from_address, to_address, msg.as_string())
+        server.quit()
+        print(f"Email sent to {to_address}")
+    except Exception as e:
+        print(f"Failed to send email to {to_address}: {e}")
+
+def email(stage, formno, ewaybill, sender, receiver, source, destination, initiationdate, e1mail, e2mail, m1mail, m2mail):
+    # Define the messages for each stage
+    if stage == 1:
+        e1_message = "You have initiated a transaction."
+        m1_message = "A transaction has been initiated, please approve it."
+        e2_message = m2_message = None
+    elif stage == 2:
+        e1_message = "Approval has been given to send the items."
+        e2_message = "A transaction to your name has been initiated."
+        m1_message = "You have approved a transaction to send."
+        m2_message = "A transaction to your project has been initiated."
+    elif stage == 3:
+        e1_message = "The transaction goods have reached the destination."
+        e2_message = "Mail for receive approval has been sent."
+        m1_message = "The transaction goods have reached the destination."
+        m2_message = "A transaction for receiving goods on your project is pending, please approve."
+    elif stage == 4:
+        e1_message = m1_message = e2_message = m2_message = "Transaction has been completed successfully."
+    else:
+        raise ValueError("Invalid stage value")
+
+    # Common email body details
+    email_body = f"""
+    Form No: {formno}
+    Ewaybill No: {ewaybill}
+    Sender: {sender}
+    Receiver: {receiver}
+    Source: {source}
+    Destination: {destination}
+    Initiation Date: {initiationdate}
+    """
+
+    # Send emails with respective messages
+    if e1mail and e1_message:
+        send_email(e1mail, "Transaction Update", f"{e1_message}\n\n{email_body}")
+    if e2mail and e2_message:
+        send_email(e2mail, "Transaction Update", f"{e2_message}\n\n{email_body}")
+    if m1mail and m1_message:
+        send_email(m1mail, "Transaction Update", f"{m1_message}\n\n{email_body}")
+    if m2mail and m2_message:
+        send_email(m2mail, "Transaction Update", f"{m2_message}\n\n{email_body}")
+
+# Example usage:
+# email(stage, formno, ewaybill, sender, receiver, source, destination, initiationdate, e1mail, e2mail, m1mail, m2mail)
+
+'''

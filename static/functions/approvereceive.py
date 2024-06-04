@@ -24,13 +24,13 @@ def approve_receive_request_function(data):
 
     # Update inventory DataFrame based on SerialNo
     for item in data[1:]:
-        serial_no = item.get('SerialNo')
+        serial_no = item.get('ProductID')
         condition = item.get('Condition')
         owner = data[0].get('Owner')
         project = data[0].get('Project')
 
         # Find the row with matching SerialNo and update values
-        df_inventory.loc[df_inventory['SerialNo'] == serial_no, ['Condition', 'Owner', 'Project']] = [condition, owner, project]
+        df_inventory.loc[df_inventory['ProductID'] == serial_no, ['Condition', 'Owner', 'Project']] = [condition, owner, project]
 
     # Save the updated inventory DataFrame back to Excel
     df_inventory.to_excel("Excel/inventory.xlsx", index=False)

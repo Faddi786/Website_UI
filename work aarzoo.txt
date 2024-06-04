@@ -1,0 +1,5 @@
+work
+sender name receiver name on handover form
+table has id, we should take name from id from user_info 
+there will be id for project then we will match it with projects column in the project table that we are making 
+we have to remove transaction type in admin for progress and history table
